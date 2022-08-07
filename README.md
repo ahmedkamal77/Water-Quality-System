@@ -1,0 +1,2 @@
+# Water-Quality-System
+This system is developed using Raspberry Pi and Arduino connected to 4 sensors that measure physical quantities of water such as PH, temperature, turbidity, and flow. After collecting all values, it transfers them to the cloud platform (Ubidots) to be readable for the user through the web dashboard. This system can be developed to add some chemicals to the water to make it pure.
