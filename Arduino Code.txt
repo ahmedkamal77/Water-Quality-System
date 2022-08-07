@@ -1,0 +1,144 @@
+// Include the libraries we need
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+// Data wire is plugged into port 2 on the Arduino
+#define ONE_WIRE_BUS 12
+
+// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_BUS);
+
+// Pass our oneWire reference to Dallas Temperature.
+DallasTemperature sensors(&oneWire);
+
+int PhPin = A0;
+int TurbidityPin = A1;
+int FlowPin = A2;
+float PhVolt;
+float PhAct;
+float PhAvg = 0.0;
+float TempValue;
+float TurbidityVolt;
+float ntu;
+int Button = 0;
+int X;
+int Y;
+float TIME = 0;
+float FREQUENCY = 0;
+float WATER = 0;
+float TOTAL = 0;
+float LS = 0;
+
+void setup() {
+  pinMode(10, INPUT); //Button Pin
+  pinMode(PhPin, INPUT);
+  pinMode(FlowPin, INPUT);
+  pinMode(TurbidityPin, INPUT);
+  Serial.begin(115200);
+  while (!Serial);
+  // Start up the library
+  sensors.begin();
+}
+
+
+void loop() {
+  
+  Button = 0;
+  while (Button == 0)
+    Button = digitalRead(10);
+
+  //PH code
+  for (int i = 0; i < 20; i++)
+  {
+    PhVolt = analogRead(PhPin);
+    PhVolt = (PhVolt * 5) / 1024;
+    PhAct = -5.7 * PhVolt + (21.34 - 0.7);
+    PhAvg += PhAct;
+   // delay(200);
+  }
+  PhAvg /= 20;
+  Serial.println(PhAvg);
+
+
+
+
+  //Temperature Code
+  // call sensors.requestTemperatures() to issue a global temperature
+  // request to all devices on the bus
+  // Serial.print("Requesting temperatures...");
+  sensors.requestTemperatures(); // Send the command to get temperatures
+  //  Serial.println("DONE");
+  // After we got the temperatures, we can print them here.
+  // We use the function ByIndex, and as an example get the temperature from the first sensor only.
+  //   Serial.print("Temperature for the device 1 (index 0) is: ");
+  TempValue = sensors.getTempCByIndex(0);
+  Serial.println(TempValue);
+  //delay(200);
+
+
+  //Turbidity Code
+  TurbidityVolt = 0;
+  for (int i = 0; i < 800; i++)
+  {
+    TurbidityVolt += ((float)(analogRead(TurbidityPin)) * 5) / 1024;
+  }
+  TurbidityVolt = TurbidityVolt / 800;
+  TurbidityVolt = round_to_dp(TurbidityVolt, 2);
+  if (TurbidityVolt < 2.5)
+  {
+    ntu = 3000;
+  }
+  else
+  {
+    TurbidityVolt *= (4.2 / 3.7);
+    ntu = -1120.4 * square(TurbidityVolt) + 5742.3 * TurbidityVolt - 4353.8;
+  }
+  //Serial.println(TurbidityVolt);
+  Serial.println(ntu);
+ // delay(200);
+
+  //Water Flow Code
+  X = pulseIn(FlowPin, HIGH);
+  Y = pulseIn(FlowPin, LOW);
+  TIME = X + Y;
+  FREQUENCY = 1000000 / TIME;
+  WATER = FREQUENCY / 7.5;
+  LS = WATER / 60;
+  if (FREQUENCY >= 0)
+  {
+    if (isinf(FREQUENCY))
+    {
+      //Serial.println();
+      //Serial.println("VOL. : 0.00");
+      Serial.println(0);
+      //Serial.print("TOTAL: ");
+      Serial.println(TOTAL);
+      //Serial.print(" L");
+      //Serial.println();
+    }
+    else
+    {
+      TOTAL = TOTAL + LS;
+      //Serial.println();
+      //Serial.println(FREQUENCY);
+      //Serial.print("VOL. : ");
+      Serial.println(WATER);
+      //Serial.print(" L/M");
+      //Serial.println();
+      //Serial.print("TOTAL: ");
+      Serial.println(TOTAL);
+      //Serial.print(" L");
+      //Serial.println();
+    }
+  }
+ // delay(200);
+
+}
+
+
+float round_to_dp( float in_value, int decimal_place )
+{
+  float multiplier = powf( 10.0f, decimal_place );
+  in_value = roundf( in_value * multiplier ) / multiplier;
+  return in_value;
+}

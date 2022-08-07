@@ -1,0 +1,49 @@
+import serial
+from ubidots import ApiClient
+import RPi.GPIO as GPIO
+import time
+
+ser = serial.Serial("/dev/ttyACM0", 115200)
+
+#Create an "API" object
+api = ApiClient("BBFF-53c429b2ca5f504de440854f0cdd0b6cd64")
+
+#Create a "Variable" object
+PH_Value = api.get_variable("6283ea7803d7d902f8e5df0f")
+Temperature_Value = api.get_variable("6283eaa80dfb56000bd60c95")
+Turbidity_Value = api.get_variable("6283eabe25854301d2d42b8d")
+WaterFlow_Value = api.get_variable("6283eaee03d7d901bc1f38ac")
+TotalWater_Value = api.get_variable("6283eb4225854301d2d42b92")
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(18,GPIO.IN)
+
+ser.setDTR(False)
+time.sleep(1)
+ser.flushInput()
+ser.setDTR(True)
+time.sleep(2)
+
+while True:
+    x = GPIO.input(18)
+    if x == True:
+        print("Start Reading")
+        val = float(ser.readline())
+        time.sleep(0.03)
+        PH_Value.save_value({'value':val})
+        
+        val = float(ser.readline())
+        time.sleep(0.03)
+        Temperature_Value.save_value({'value':val})
+    
+        val = float(ser.readline())
+        time.sleep(0.03)
+        Turbidity_Value.save_value({'value':val})
+    
+        val = float(ser.readline())
+        time.sleep(0.03)
+        WaterFlow_Value.save_value({'value':val})
+    
+        val = float(ser.readline())
+        time.sleep(0.03)
+        TotalWater_Value.save_value({'value':val})
